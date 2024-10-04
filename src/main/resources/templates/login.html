@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/qima-challenge/css/styles.css"> 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+        <label for="username">User:</label>
+        <input type="text" id="username" name="username" required oninvalid="this.setCustomValidity('Please fill out this field.')" oninput="this.setCustomValidity('')">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required oninvalid="this.setCustomValidity('Please fill out this field.')" oninput="this.setCustomValidity('')">
+        
+        <button type="submit">Sign in</button>
+        <div class="error-message" id="error-message"></div>
+    </form>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault(); 
+            
+            const username = $('#username').val();
+            const password = $('#password').val();
+            
+            $.ajax({
+                url: 'http://localhost:8081/api/login', 
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ username, password }),
+                success: function(data) {
+                    localStorage.setItem('jwt', data.token);
+                    console.log("Token armazenado no localStorage:", localStorage.getItem('jwt')); 
+                    window.location.href = '/qima-challenge/products';
+                },
+                error: function(err) {
+                    console.error("Authentication fail:", err.responseJSON.message);
+                    $('#error-message').text('Authentication fail!' + err.responseJSON.message);
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>

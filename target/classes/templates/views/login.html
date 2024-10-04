@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/css/styles.css"> 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+        <label for="username">User:</label>
+        <input type="text" id="username" name="username" required>
+        
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        
+        <button type="submit">Sign in</button>
+        <div class="error-message" id="error-message"></div>
+    </form>
+</div>
+
+<script>
+    $(document).ready(function() {
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault(); // Impede o envio padrão do formulário
+            
+            const username = $('#username').val();
+            const password = $('#password').val();
+            
+            $.ajax({
+                url: 'http://localhost:8080/api/auth/login', // URL da sua API de login
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ username, password }),
+                success: function(data) {
+                    // Salve o token JWT recebido
+                    localStorage.setItem('jwt', data.token);
+                    // Redireciona para a página de produtos
+                    window.location.href = '/products.html';
+                },
+                error: function(err) {
+                    $('#error-message').text('Falha na autenticação: ' + err.responseJSON.message);
+                }
+            });
+        });
+    });
+</script>
+
+</body>
+</html>
