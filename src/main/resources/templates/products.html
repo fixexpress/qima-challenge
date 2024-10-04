@@ -6,43 +6,46 @@
     <title>Products</title>
     <link rel="stylesheet" href="/qima-challenge/css/products.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Estilo básico para o ícone de edição e lixeira */
+        .edit-icon, .delete-icon {
+            cursor: pointer;
+            font-size: 20px;
+            margin-left: 10px;
+        }
+        .delete-icon {
+            color: red; /* Cor vermelha para o ícone de deletar */
+        }
+    </style>
 </head>
 <body>
-    <!-- Overlay to darken the background when modal is open -->
     <div class="overlay hidden" id="overlay"></div>
-    
-    <!-- Div for the new product registration form -->
     <div class="modal hidden" id="productForm">
         <div class="modal-content">
             <span class="close-button" id="closeForm">&times;</span>
-            <h3>Register Product</h3>
+            <h3 id="formTitle">Register Product</h3>
             <form id="newProductForm">
+                <input type="hidden" id="productId" name="productId">
                 <label for="name">Name:</label>
                 <input type="text" id="name" name="name" required>
-                
                 <label for="description">Description:</label>
                 <input type="text" id="description" name="description" required>
-                
                 <label for="price">Price:</label>
                 <input type="number" id="price" name="price" step="0.01" required>
-                
                 <label for="available">Available:</label>
                 <select id="available" name="available">
                     <option value="true">Yes</option>
                     <option value="false">No</option>
                 </select>
-                
-                <button type="submit" class="primary-button">Register Product</button>
+                <button type="submit" class="primary-button" id="submitButton">Register Product</button>
             </form>
         </div>
     </div>
 
-
-    <!-- Main container for the product list -->
     <div class="product-container">
-        <h2>QIMA Product List</h2>
+        <h1>QIMA Challenge</h1>
+        <h2>Product List</h2>
 
-        <!-- Product table -->
         <table class="styled-table">
             <thead>
                 <tr>
@@ -51,36 +54,28 @@
                     <th>Description</th>
                     <th>Price</th>
                     <th>Available</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
-            <tbody id="productList">
-                <!-- Products will be dynamically loaded here via JavaScript -->
-            </tbody>
+            <tbody id="productList"></tbody>
         </table>
         
-        <!-- Button to add a new product -->
-<!--          <button id="addProductButton" class="primary-button">Add Product</button>-->
-        
         <div class="button-container">
-		    <button class="primary-button" id="addProductButton">Add Product</button>
-		    <button class="primary-button" id="logoutBtn">Log Off</button>
-		</div>
-        
-        
-        
-        
+            <button class="primary-button" id="addProductButton">Add Product</button>
+            <button class="primary-button" id="logoutBtn">Log Off</button>
+        </div>
     </div>
 
     <script src="/qima-challenge/js/products.js"></script>
     
     <script>
-    
         $(document).ready(function() {
             const token = localStorage.getItem('jwt');
             if (!token) {
                 window.location.href = '/qima-challenge/login';
             }
 
+            // Função para carregar os produtos
             function loadProducts() {
                 $.ajax({
                     url: 'http://localhost:8081/api/products', 
@@ -99,6 +94,10 @@
                                     <td>${product.description}</td>
                                     <td>${product.price.toFixed(2)}</td>
                                     <td>${product.available ? 'Yes' : 'No'}</td>
+                                    <td>
+                                        <span class="edit-icon" data-id="${product.id}">&#9998;</span> 
+                                        <span class="delete-icon" data-id="${product.id}">&#128465;</span>
+                                    </td>
                                 </tr>
                             `);
                         });
@@ -109,40 +108,48 @@
                 });
             }
 
-            loadProducts();
-            
-            // Show the product registration form when Add Product button is clicked
-            $('#addProductButton').on('click', function() {                
+            // Carrega os produtos ao iniciar
+            loadProducts(); 
+
+            // Exibir o formulário de registro de produtos
+            $('#addProductButton').on('click', function() {
                 $('#overlay').removeClass('hidden'); 
                 $('#productForm').removeClass('hidden'); 
-                
+                $('#formTitle').text('Register Product');
+                $('#submitButton').text('Register Product');
+                $('#newProductForm')[0].reset();
+                $('#productId').val(''); 
                 document.getElementById("name").focus();
             });
 
-            // Close the product registration form
+            // Fechar o formulário de registro de produtos
             $('#closeForm').on('click', function() {
-                $('#overlay').addClass('hidden'); // Hide the overlay
-                $('#productForm').addClass('hidden'); // Hide the product form
+                $('#overlay').addClass('hidden'); 
+                $('#productForm').addClass('hidden'); 
             });
 
-            // Logic to submit the new product via AJAX
+            // Lógica para enviar o novo produto via AJAX
             $('#newProductForm').on('submit', function(e) {
                 e.preventDefault();
-                const newProduct = {
+                const productId = $('#productId').val();
+                const productData = {
                     name: $('#name').val(),
                     description: $('#description').val(),
                     price: parseFloat($('#price').val()),
                     available: $('#available').val() === 'true'
                 };
 
+                const method = productId ? 'PUT' : 'POST';
+                const url = productId ? `http://localhost:8081/api/products/${productId}` : 'http://localhost:8081/api/products';
+
                 $.ajax({
-                    url: 'http://localhost:8081/api/products',
-                    method: 'POST',
+                    url: url,
+                    method: method,
                     headers: {
                         'Authorization': 'Bearer ' + token,
                         'Content-Type': 'application/json'
                     },
-                    data: JSON.stringify(newProduct),
+                    data: JSON.stringify(productData),
                     success: function() {
                         $('#overlay').addClass('hidden'); 
                         $('#productForm').addClass('hidden'); 
@@ -153,8 +160,54 @@
                     }
                 });
             });
+
+            // Ação de editar um produto
+            $(document).on('click', '.edit-icon', function() {
+                const productId = $(this).data('id');
+                $.ajax({
+                    url: `http://localhost:8081/api/products/${productId}`,
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    success: function(product) {
+                        $('#overlay').removeClass('hidden'); 
+                        $('#productForm').removeClass('hidden'); 
+                        $('#formTitle').text('Edit Product');
+                        $('#submitButton').text('Edit Product');
+                        
+                        $('#productId').val(product.id);
+                        $('#name').val(product.name);
+                        $('#description').val(product.description);
+                        $('#price').val(product.price);
+                        $('#available').val(product.available.toString());
+                    },
+                    error: function(err) {
+                        console.error(err);
+                    }
+                });
+            });
+
+            // Ação para deletar produto ao clicar no ícone de lixeira
+            $(document).on('click', '.delete-icon', function() {
+                const productId = $(this).data('id');
+                if (confirm('Are you sure you want to delete this product?')) {
+                    $.ajax({
+                        url: `http://localhost:8081/api/products/${productId}`,
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': 'Bearer ' + token 
+                        },
+                        success: function() {
+                            loadProducts(); // Recarrega a lista de produtos
+                        },
+                        error: function(err) {
+                            console.error(err);
+                        }
+                    });
+                }
+            });
         });
-        
         
         document.getElementById("logoutBtn").addEventListener("click", function() {
             fetch("http://localhost:8080/qima-challenge/logoutinvalidatetoken", {
@@ -175,8 +228,6 @@
                 console.error("Erro:", error);
             });
         });
-
     </script>
-        
 </body>
 </html>
