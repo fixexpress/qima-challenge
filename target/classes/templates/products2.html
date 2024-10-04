@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Produtos</title>
+    <link rel="stylesheet" href="/qima-challenge/css/styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Lista de Produtos</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Price</th>
+                    <th>Avaliable</th>
+                </tr>
+            </thead>
+            <tbody id="productList">
+                <!-- Os produtos serão carregados aqui -->
+            </tbody>
+        </table>
+        <button id="addProductButton">Add Product</button>
+        <div class="error-message" id="error-message"></div>
+    </div>
+
+   <script src="/qima-challenge/js/products.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            const token = localStorage.getItem('jwt');
+            if (!token) {
+                window.location.href = '/qima-challenge/login';
+            }
+
+            function loadProducts() {
+                $.ajax({
+                    url: 'http://localhost:8081/api/products', 
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token 
+                    },
+                    success: function(data) {
+                        const productList = $('#productList');
+                        productList.empty(); 
+                        data.forEach(product => {
+                        	
+                        	const price = product.price ? product.price.toFixed(2) : 'N/A';
+
+                        	
+                            productList.append(`
+                                <tr>
+                                    <td>${product.id}</td>
+                                    <td>${product.name}</td>
+                                    <td>${product.description}</td>
+                                    <td>${product.price.toFixed(2)} R$</td>
+                                    <td>${product.available ? 'Sim' : 'Não'}</td>
+                                </tr>
+                            `);
+                        });
+                    },
+                    error: function(err) {
+                    	console.error(err);
+                    }
+                });
+                
+            }
+
+            loadProducts();
+            
+            $('#addProductButton').on('click', function() {                
+                window.location.href = '/qima-challenge/add-product.html'; 
+            });
+        });
+    </script>
+</body>
+</html>

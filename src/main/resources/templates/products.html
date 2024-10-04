@@ -1,36 +1,80 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Produtos</title>
-    <link rel="stylesheet" href="/qima-challenge/css/styles.css">
+    <title>Products</title>
+    <link rel="stylesheet" href="/qima-challenge/css/products.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h2>Lista de Produtos</h2>
-        <table>
+    <!-- Overlay to darken the background when modal is open -->
+    <div class="overlay hidden" id="overlay"></div>
+    
+    <!-- Div for the new product registration form -->
+    <div class="modal hidden" id="productForm">
+        <div class="modal-content">
+            <span class="close-button" id="closeForm">&times;</span>
+            <h3>Register Product</h3>
+            <form id="newProductForm">
+                <label for="name">Name:</label>
+                <input type="text" id="name" name="name" required>
+                
+                <label for="description">Description:</label>
+                <input type="text" id="description" name="description" required>
+                
+                <label for="price">Price:</label>
+                <input type="number" id="price" name="price" step="0.01" required>
+                
+                <label for="available">Available:</label>
+                <select id="available" name="available">
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+                
+                <button type="submit" class="primary-button">Register Product</button>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Main container for the product list -->
+    <div class="product-container">
+        <h2>QIMA Product List</h2>
+
+        <!-- Product table -->
+        <table class="styled-table">
             <thead>
                 <tr>
                     <th>ID</th>
                     <th>Name</th>
                     <th>Description</th>
                     <th>Price</th>
-                    <th>Avaliable</th>
+                    <th>Available</th>
                 </tr>
             </thead>
             <tbody id="productList">
-                <!-- Os produtos serão carregados aqui -->
+                <!-- Products will be dynamically loaded here via JavaScript -->
             </tbody>
         </table>
-        <button id="addProductButton">Add Product</button>
-        <div class="error-message" id="error-message"></div>
+        
+        <!-- Button to add a new product -->
+<!--          <button id="addProductButton" class="primary-button">Add Product</button>-->
+        
+        <div class="button-container">
+		    <button class="primary-button" id="addProductButton">Add Product</button>
+		    <button class="primary-button" id="logoutBtn">Log Off</button>
+		</div>
+        
+        
+        
+        
     </div>
 
-   <script src="/qima-challenge/js/products.js"></script>
+    <script src="/qima-challenge/js/products.js"></script>
     
     <script>
+    
         $(document).ready(function() {
             const token = localStorage.getItem('jwt');
             if (!token) {
@@ -48,34 +92,91 @@
                         const productList = $('#productList');
                         productList.empty(); 
                         data.forEach(product => {
-                        	
-                        	const price = product.price ? product.price.toFixed(2) : 'N/A';
-
-                        	
                             productList.append(`
                                 <tr>
                                     <td>${product.id}</td>
                                     <td>${product.name}</td>
                                     <td>${product.description}</td>
-                                    <td>${product.price.toFixed(2)} R$</td>
-                                    <td>${product.available ? 'Sim' : 'Não'}</td>
+                                    <td>${product.price.toFixed(2)}</td>
+                                    <td>${product.available ? 'Yes' : 'No'}</td>
                                 </tr>
                             `);
                         });
                     },
                     error: function(err) {
-                    	console.error(err);
+                        console.error(err);
                     }
                 });
-                
             }
 
             loadProducts();
             
+            // Show the product registration form when Add Product button is clicked
             $('#addProductButton').on('click', function() {                
-                window.location.href = '/qima-challenge/add-product.html'; 
+                $('#overlay').removeClass('hidden'); 
+                $('#productForm').removeClass('hidden'); 
+                
+                document.getElementById("name").focus();
+            });
+
+            // Close the product registration form
+            $('#closeForm').on('click', function() {
+                $('#overlay').addClass('hidden'); // Hide the overlay
+                $('#productForm').addClass('hidden'); // Hide the product form
+            });
+
+            // Logic to submit the new product via AJAX
+            $('#newProductForm').on('submit', function(e) {
+                e.preventDefault();
+                const newProduct = {
+                    name: $('#name').val(),
+                    description: $('#description').val(),
+                    price: parseFloat($('#price').val()),
+                    available: $('#available').val() === 'true'
+                };
+
+                $.ajax({
+                    url: 'http://localhost:8081/api/products',
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    data: JSON.stringify(newProduct),
+                    success: function() {
+                        $('#overlay').addClass('hidden'); 
+                        $('#productForm').addClass('hidden'); 
+                        loadProducts();  
+                    },
+                    error: function(err) {
+                        console.error(err);
+                    }
+                });
             });
         });
+        
+        
+        document.getElementById("logoutBtn").addEventListener("click", function() {
+            fetch("http://localhost:8080/qima-challenge/logoutinvalidatetoken", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + localStorage.getItem("token"), 
+                    "Content-Type": "application/json"
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    window.location.href = "login.html"; 
+                } else {
+                    console.error("Erro ao fazer logout");
+                }
+            })
+            .catch(error => {
+                console.error("Erro:", error);
+            });
+        });
+
     </script>
+        
 </body>
 </html>
